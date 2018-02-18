@@ -1,41 +1,27 @@
-const express = require('express');
-const formidable = require('express-formidable');
-const aws = require('aws-sdk');
 const config = require('./config');
-const jwt = require('express-jwt');
-const cors = require('cors');
-const morgan = require('morgan');
+const Storage = require('./storage');
+const Auth = require('./auth');
 
-const s3 = new aws.S3(Object.assign({}, config.s3config));
+const app = require('express')();
 
-const app = express();
+app.use(require('cors')());
+app.use(require('morgan')('short'));
+app.use(require('express-formidable')(config.formidable));
 
-const format = (str, replacements) =>
-    Object
-        .keys(replacements || {})
-        .reduce((str, key) => str.replace(new RegExp('\\{' + key + '\\}', 'gm'), replacements[key]), str);
-
-app.use(cors());
-app.use(morgan('short'));
-app.use(formidable(config.formidable));
-
-if (config.auth && config.auth.secret === 'CHANGEME') {
-    if (config.auth.secret === 'CHANGEME') {
-        console.log('You must change the JWT secret to enable authentication!');
-        process.exit(-1);
-    }
-
-    app.use(jwt(Object.assign({}, config.auth, { resultProperty: 'locals.token' })));
-}
+Auth.init(config, app);
+Storage.init(config);
 
 app.post(config.uploadUri || '/upload', (req, res) => {
-    console.log(req.fields);
-    console.log(req.files);
-    console.log(res.locals);
-
-    res.status(200).json({
-        status: 'OK',
-        result: 'It worked!'
-    })
+    Storage.processFiles(req, res)
+        .then(result => {
+            console.log('result', result);
+            res.status(200).json({ status: 'OK', result });
+        })
+        .catch(e => {
+            console.log(e);
+            res.status(500).json({ status: 'ERROR', error: e.message });
+        });
 });
 
+const port = process.env.PORT || config.port || 3000;
+app.listen(port, () => console.log('STORS: Listening on port %d!', port));
