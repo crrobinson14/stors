@@ -1,0 +1,12 @@
+{
+  "uploadUri": "/upload",
+  "formidable": {
+    "encoding": "utf-8",
+    "keepExtensions": true,
+    "multiples": true
+  },
+  "auth": {
+    "secret": "CHANGEME",
+    "algorithm": "HS256"
+  }
+}
