@@ -1,4 +1,26 @@
 const uuid = require('uuid').v4;
+const path = require('path');
+
+/**
+ * Format a string with replacement tokens in the format "{token}".
+ *
+ * @param {String} str - The path template to format.
+ * @param {Object} replace - [K:V] pairs with tokens to use during formatting.
+ * @param {Array} [prefixes] - Path prefixes for dotted notation.
+ * @returns {String}
+ */
+const replaceTokens = (str, replace, prefixes) => {
+    return Object
+        .keys(replace || {})
+        .reduce((s, field) => {
+            const value = replace[field];
+            if (typeof value === 'object') {
+                return replaceTokens(s, replace[field], (prefixes || []).concat(field));
+            }
+
+            return s.replace(new RegExp('\\{' + (prefixes || []).concat(field).join('.') + '\\}', 'gm'), value);
+        }, str);
+};
 
 const Storage = {
     /**
@@ -10,37 +32,23 @@ const Storage = {
         this.options = config.storage;
 
         if (!this.options) {
-            throw new Error('Must specify a storage configuration!');
+            throw new Error('STORAGE: Must specify a storage configuration!');
         }
 
         if (!this.options.destinationPath) {
-            throw new Error('Must specify a storage destinationPath!');
+            throw new Error('STORAGE: Must specify a storage destinationPath!');
         }
 
         if (this.options.s3) {
             this.engine = require('./storage-s3');
-            return;
         }
 
-        if (engine) {
-            console.log('STORAGE: Configuring Storage', this.options);
+        if (this.engine) {
+            console.log('STORAGE: Configuring Storage subsystem');
             this.engine.init(config);
         } else {
-            throw new Error('Must specify a storage engine!');
+            throw new Error('STORAGE: Must specify a storage engine!');
         }
-    },
-
-    /**
-     * Format a destination path, with optional replacement tokens.
-     *
-     * @param {String} str - The path template to format.
-     * @param {Object} replacements - [K:V] pairs with tokens to use during formatting.
-     * @returns {String}
-     */
-    formatDestination(str, replacements) {
-        return Object
-            .keys(replacements || {})
-            .reduce((str, key) => str.replace(new RegExp('\\{' + key + '\\}', 'gm'), replacements[key]), str);
     },
 
     /**
@@ -50,21 +58,30 @@ const Storage = {
      * @param {Object} res - Response.
      */
     processFiles(req, res) {
+        const dt = new Date();
+        const date = {
+            d: dt.getUTCDate(),
+            m: dt.getUTCMonth() + 1,
+            y: dt.getUTCFullYear(),
+            h: dt.getUTCHours(),
+            i: dt.getUTCMinutes(),
+            s: dt.getUTCSeconds(),
+            ms: dt.getUTCMilliseconds()
+        };
+
         const uploads = Object.keys(req.files || {}).map(fieldName => {
             const file = req.files[fieldName];
-            const destinationPath = Storage.formatDestination(this.options.destinationPath, {
-                token: res.locals.token || {},
-                uuid: uuid(),
-            });
 
-            console.log('Processing file', fieldName, destinationPath, file);
+            const destinationPath = replaceTokens(this.options.destinationPath, Object.assign({}, res.locals, {
+                uuid: uuid(),
+                ext: path.extname(file.name),
+                basename: path.basename(file.name),
+                date
+            }));
+
+            console.log('STORAGE: Processing file', fieldName, destinationPath);
             return this.engine.store(file, destinationPath)
-                .then(() => ({
-                    fieldName,
-                    destinationPath,
-                    mimetype: file.type,
-                    size: file.size,
-                }));
+                .then(() => ({ fieldName, destinationPath, mimetype: file.type, size: file.size }));
         });
 
         console.log('STORAGE: Queued ' + uploads.length + ' uploads...');

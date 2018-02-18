@@ -11,15 +11,15 @@ const StorageS3 = {
         this.options = config.storage.s3;
 
         if (!this.options) {
-            throw new Error('Must specify a configuration for S3!');
+            throw new Error('STORAGE-S3: Must specify a configuration for S3!');
         }
 
         if (!this.options.region) {
-            throw new Error('Must specify a region for S3!');
+            throw new Error('STORAGE-S3: Must specify a region for S3!');
         }
 
         if (!this.options.params || !this.options.params.Bucket) {
-            throw new Error('Must specify a bucket for S3!');
+            throw new Error('STORAGE-S3: Must specify a bucket for S3!');
         }
 
         console.log('STORAGE-S3: Configuring S3', this.options);
@@ -38,7 +38,6 @@ const StorageS3 = {
         console.log('STORAGE-S3: Uploading file %s (%s: %d bytes) from %s -> %s',
             file.name, file.type, file.size, file.path, destinationPath);
         const stat = fs.statSync(file.path);
-        console.log('stats', stat);
 
         return Promise.resolve(true);
         // console.log({
