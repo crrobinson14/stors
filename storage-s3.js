@@ -1,5 +1,6 @@
 const AWS = require('aws-sdk');
 const fs = require('fs');
+const path = require('path');
 
 const StorageS3 = {
     /**
@@ -22,7 +23,7 @@ const StorageS3 = {
             throw new Error('STORAGE-S3: Must specify a bucket for S3!');
         }
 
-        console.log('STORAGE-S3: Configuring S3', this.options);
+        console.log('STORAGE-S3: Configured for S3 storage');
         this.s3 = new AWS.S3(this.options);
     },
 
@@ -31,37 +32,32 @@ const StorageS3 = {
      * although it's exposed in case another caller needs full control over an upload operation.
      *
      * @param {Object} file - The uploaded file as parsed by Formidable.
-     * @param {String} destinationPath - The destination path for the file.
+     * @param {String} Key - The destination path for the file.
      * @returns {Promise}
      */
-    store(file, destinationPath) {
+    store(file, Key) {
         console.log('STORAGE-S3: Uploading file %s (%s: %d bytes) from %s -> %s',
-            file.name, file.type, file.size, file.path, destinationPath);
-        const stat = fs.statSync(file.path);
+            file.name, file.type, file.size, file.path, Key);
 
-        return Promise.resolve(true);
-        // console.log({
-        //     Body: fs.createReadStream(attachment.tempfile),
-        //     ACL: 'public-read',
-        //     Key,
-        //     ContentDisposition: 'inline; filename="' + attachment.filename + '"',
-        //     ContentType: attachment.mimetype || 'image/jpeg'
-        // });
-        // assetsBucket.upload({
-        //     Body: fs.createReadStream(attachment.tempfile),
-        //     ACL: 'public-read',
-        //     Key,
-        //     ContentDisposition: 'inline; filename="' + attachment.filename + '"',
-        //     ContentType: attachment.mimetype || 'image/jpeg'
-        // })
-        //     .promise()
-        //     .then(
-        //         result => console.log('STORAGE-S3: Successfully uploaded to', Key, result),
-        //         e => {
-        //             console.error('STORAGE-S3: S3 upload error', e);
-        //             throw e;
-        //         }
-        //     );
+        const request = {
+            Body: fs.createReadStream(file.path),
+            ACL: 'public-read',
+            Key,
+            ContentDisposition: 'inline; filename="' + path.basename(Key) + '"',
+            ContentType: file.type || 'image/jpeg'
+        };
+
+        return this.s3.upload(request).promise()
+            .then(
+                result => {
+                    console.log('STORAGE-S3: Successfully uploaded %s', Key);
+                    return result.Location;
+                },
+                e => {
+                    console.error('STORAGE-S3: S3 upload error', e);
+                    throw e;
+                }
+            );
     }
 };
 

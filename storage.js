@@ -81,7 +81,7 @@ const Storage = {
 
             console.log('STORAGE: Processing file', fieldName, destinationPath);
             return this.engine.store(file, destinationPath)
-                .then(() => ({ fieldName, destinationPath, mimetype: file.type, size: file.size }));
+                .then(url => ({ fieldName, destinationPath, mimetype: file.type, size: file.size, url }));
         });
 
         console.log('STORAGE: Queued ' + uploads.length + ' uploads...');
