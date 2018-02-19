@@ -8,7 +8,7 @@
     }
   },
   "storage": {
-    "destinationPath": "{date.y}/{token.userId}/{uuid}{ext}",
+    "destinationPath": "{date.y}/{date.m}/{token.userId}/{uuid}{ext}",
     "s3": {
       "region": "us-east-1",
       "params": {
