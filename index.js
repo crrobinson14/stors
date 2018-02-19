@@ -9,13 +9,12 @@ app.use(require('cors')());
 app.use(require('morgan')('short'));
 app.use(require('express-formidable')(config.formidable));
 
-// Little ExpressJS trick... If you specify a route before app-wide middleware is loaded (JWT), the route is not
-// covered by it. This is a status endpoint to assist load balancers in monitoring the service's presence.
-app.get('/status', (req, res) => res.status(200).json({ status: 'OK '}));
-
 Auth.init(config, app);
 Storage.init(config);
 Notifications.init(config);
+
+// Status endpoint for load balancer health checks
+app.get('/status', (req, res) => res.status(200).json({ status: 'OK '}));
 
 app.post(config.uploadUri || '/upload', (req, res) => {
     Storage.processFiles(req, res)

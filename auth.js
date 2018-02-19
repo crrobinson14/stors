@@ -1,3 +1,6 @@
+const jwt = require('express-jwt');
+require('express-unless');
+
 const Auth = {
     init(config, app) {
         this.options = config.auth;
@@ -12,8 +15,9 @@ const Auth = {
         }
 
         console.log('AUTH: Enabling JWT authentication.');
-        const jwt = require('express-jwt');
-        app.use(jwt(Object.assign({}, this.options, { resultProperty: 'locals.token' })));
+
+        const requiresAuth = jwt(Object.assign({}, this.options, { resultProperty: 'locals.token' }));
+        app.use(requiresAuth.unless({ path: ['/status'] }));
     }
 };
 
