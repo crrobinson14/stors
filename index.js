@@ -3,6 +3,8 @@ const Storage = require('./storage');
 const Auth = require('./auth');
 const Notifications = require('./notifications');
 
+process.setMaxListeners(0);
+
 const app = require('express')();
 
 app.use(require('cors')());
