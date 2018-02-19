@@ -4,5 +4,8 @@ node_modules/
 coverage/
 .nyc_output/
 junit.xml
-
 config.json
+.eslintrc.js
+.codecov.yml
+.editorconfig
+*.tgz
